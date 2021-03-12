@@ -697,8 +697,12 @@ def append_to_fbx(doc, node, fbx_parent_id: int, desc: SceneDescription):
             texture_file_name = "empty.png"
             if node.texture_blob is not None:
                 texture_payload = node.texture_blob["payload"]
+
+                texture_hash = hashlib.sha256(texture_payload).hexdigest()
+
                 texture_ext = detect_asset_type(texture_payload)
-                texture_name = get_texture_name(node.texture_id)
+                # texture_name = get_texture_name(node.texture_id)
+                texture_name = str(texture_hash)
                 texture_file_name = texture_name + "." + texture_ext
 
                 full_texture_file_name = desc.textures_folder + texture_file_name

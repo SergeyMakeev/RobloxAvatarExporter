@@ -7,6 +7,7 @@ end
 local kServerUrl = "http://127.0.0.1:49999/"
 
 
+local g_InsertService = game:GetService("InsertService")
 local g_Players = game:GetService("Players")
 local g_AssetService = game:GetService("AssetService")
 local g_SelectionService = game:GetService("Selection")
@@ -235,6 +236,21 @@ local function createAvatarDescription(avatarModel: Model)
 end
 
 
+local function createDefaultR15Rig()
+	local assetId = 1664543044
+	local success, model = pcall(g_InsertService.LoadAsset, g_InsertService, assetId)
+	if success and model then
+		local player = model:FindFirstChild("Player")
+		if player then
+			return player
+		end
+	end
+	
+	warn("Model failed to load Default rig!")
+	return nil
+end
+
+
 local function applyBundle(humanoid, bundleId)
 	local bundleInfo = g_AssetService:GetBundleDetailsAsync(bundleId)
 	local outfitId = 0
@@ -253,6 +269,9 @@ local function applyBundle(humanoid, bundleId)
 	end
 
 	local name = string.gsub(bundleInfo.Name, ' ', '_')
+	name = string.gsub(name, "'", '_')
+	name = string.gsub(name, '"', '_')
+	name = string.gsub(name, "`", '_')
 	name = string.gsub(name, ':', '_')
 	name = string.gsub(name, '/', '_')
 	name = string.gsub(name, '\\', '_')
@@ -260,19 +279,13 @@ local function applyBundle(humanoid, bundleId)
 end
 
 local function batchExport()
-
-	local blankR15 = workspace:FindFirstChild("BlankR15")
-	if not blankR15 then
-		warn("workspace.BlankR15 - not found")
-		return
-	end
-
-	local humanoid = blankR15:FindFirstChild("Humanoid")
-	if not humanoid then
-		warn("workspace.BlankR15.Humanoid - not found")
-		return
-	end
 	
+	local blankR15 = createDefaultR15Rig()
+	if not blankR15 then
+		warn("Can't create default R15 rig")
+		return
+	end
+
 	blankR15.Parent = game.ReplicatedStorage
 
 	local success, response = pcall(g_Http.GetAsync, g_Http, kServerUrl, false)
@@ -305,7 +318,7 @@ local function batchExport()
 		avatarModel:Destroy()
 	end
 	
-	blankR15.Parent = workspace
+	blankR15:Destroy()
 
 end
 
@@ -337,4 +350,5 @@ local batchExportBtn = g_Toolbar:CreateButton("Batch Export", "Batch Export", "r
 batchExportBtn.Click:connect(function()
 	batchExport()	
 end)
+
 
