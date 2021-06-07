@@ -119,9 +119,31 @@ def detect_asset_type(content: bytes) -> str:
     return 'raw'
 
 
+def fetch_local_asset(file_path: str):
+
+    with open(file_path, 'rb') as bin_file:
+        data = bin_file.read()
+        bin_file.close()
+
+    h256 = hashlib.sha256()
+    h256.update(data)
+
+    return {"hash": h256.hexdigest(),
+            "cdn_url": file_path,
+            "ts": int(0),
+            "code": 200,
+            "fetched_bytes": len(data),
+            "payload_bytes": len(data),
+            "payload": data}, None
+
+
 def fetch_asset(url: str) -> dict or None:
     if not url:
         return None, "Invalid URL"
+
+    if url.startswith('rbxasset://'):
+        url = "./built-in/" + url[11:]
+        return fetch_local_asset(url)
 
     asset_fetch_endpoint = 'https://assetdelivery.roblox.com/v1/asset/?id='
     if url.startswith('rbxassetid://'):
@@ -635,6 +657,7 @@ def load_mesh_as_fbx_geo(file_name: str, cframe: CFrame):
 
 def get_texture_name(url: str):
     texture_name = "url_resolve_error"
+
     if url.startswith('rbxassetid://'):
         texture_name = url[13:]
     elif url.startswith('https://www.roblox.com/asset/?id='):
