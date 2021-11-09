@@ -1095,6 +1095,26 @@ class ForgeHTTPArtServerRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         response = "{"
+
+        # add heads
+        heads_file = open('./heads.txt', 'r')
+        if heads_file:
+            response += '"heads": ['
+            lines = heads_file.readlines()
+            need_comma = False
+            for line in lines:
+                ln = line.rstrip()
+                if not ln.isdigit():
+                    continue
+                if need_comma:
+                    response += ", "
+                response += ln
+                need_comma = True
+            response += '], '
+        else:
+            logger.warn("Can't open heads.txt")
+
+        # add bundles
         bundles_file = open('./bundles.txt', 'r')
         if bundles_file:
             response += '"bundles": ['

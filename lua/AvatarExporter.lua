@@ -1,4 +1,5 @@
 --!strict
+--!strict
 if (plugin == nil) then
 	print("This script needs to be run as Studio plugin.")
 	return
@@ -250,6 +251,36 @@ local function createDefaultR15Rig()
 	return nil
 end
 
+local function applyHead(avatarModel, assetId)
+	local success, model = pcall(g_InsertService.LoadAsset, g_InsertService, assetId)
+	if success and model then
+		local headFromBundle = model:FindFirstChildWhichIsA("SpecialMesh")
+		if headFromBundle then
+			local headPart = avatarModel:FindFirstChild("Head")
+			if headPart then
+				local existingSM = headPart:FindFirstChildWhichIsA("SpecialMesh")
+				if existingSM then
+					existingSM:Destroy()
+				end
+				headFromBundle.Parent = headPart 
+			end
+		end
+		model:Destroy()
+		
+		local assetInfo = game:GetService("MarketplaceService"):GetProductInfo(assetId)
+		
+		local name = string.gsub(assetInfo.Name, ' ', '_')
+		name = string.gsub(name, "'", '_')
+		name = string.gsub(name, '"', '_')
+		name = string.gsub(name, "`", '_')
+		name = string.gsub(name, ':', '_')
+		name = string.gsub(name, '/', '_')
+		name = string.gsub(name, '\\', '_')
+		return "Head_" .. name
+	end
+	
+	return "None"
+end
 
 local function applyBundle(humanoid, bundleId)
 	local bundleInfo = g_AssetService:GetBundleDetailsAsync(bundleId)
@@ -295,10 +326,33 @@ local function batchExport()
 	end
 
 	local response = g_Http:JSONDecode(response)
+	print("heads count :" .. tostring(#response.heads) )
 	print("bundles count :" .. tostring(#response.bundles) )
+	
+	for _, headId in ipairs(response.heads) do
+		print("Spawning head " .. tostring(headId))
+		local avatarModel = blankR15:Clone()
+		avatarModel.Parent = workspace
+		local name = applyHead(avatarModel, headId)
+		avatarModel.Name = name
+		local json = createAvatarDescription(avatarModel)
+		if not json then
+			warn("Can not generate avatar descriptor")
+		else
+			print("Waiting response from 'Avatar FBX Exporter Server'")
+			local success, response = pcall(g_Http.PostAsync, g_Http, kServerUrl, json, Enum.HttpContentType.ApplicationJson, false)
+			if not success then
+				warn("Http request failed. Please run FbxExporterServer.py")
+			end
+			print(response)			
+		end
+
+		avatarModel:Destroy()
+	end
+
 
 	for _, bundleId in ipairs(response.bundles) do
-		print("Spawning bundle" .. tostring(bundleId))
+		print("Spawning bundle " .. tostring(bundleId))
 		local avatarModel = blankR15:Clone()
 		avatarModel.Parent = workspace
 		local name = applyBundle(avatarModel.Humanoid, bundleId)
@@ -350,5 +404,4 @@ local batchExportBtn = g_Toolbar:CreateButton("Batch Export", "Batch Export", "r
 batchExportBtn.Click:connect(function()
 	batchExport()	
 end)
-
 
