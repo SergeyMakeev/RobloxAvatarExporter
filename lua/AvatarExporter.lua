@@ -1,5 +1,4 @@
 --!strict
---!strict
 if (plugin == nil) then
 	print("This script needs to be run as Studio plugin.")
 	return
@@ -22,6 +21,21 @@ local g_UUID: number = 99
 local function getUUID()
 	g_UUID = g_UUID + 1
 	return g_UUID
+end
+
+
+local function fixFileName(name)
+	name = string.gsub(name, ' ', '_')
+	name = string.gsub(name, "'", '_')
+	name = string.gsub(name, '"', '_')
+	name = string.gsub(name, "`", '_')
+	name = string.gsub(name, ':', '_')
+	name = string.gsub(name, '/', '_')
+	name = string.gsub(name, '\\', '_')
+	name = string.gsub(name, '.', '_')
+	name = string.gsub(name, '@', '_')
+	name = string.gsub(name, ',', '_')
+	return name
 end
 
 
@@ -246,7 +260,7 @@ local function createDefaultR15Rig()
 			return player
 		end
 	end
-	
+
 	warn("Model failed to load Default rig!")
 	return nil
 end
@@ -266,19 +280,13 @@ local function applyHead(avatarModel, assetId)
 			end
 		end
 		model:Destroy()
-		
+
 		local assetInfo = game:GetService("MarketplaceService"):GetProductInfo(assetId)
 		
-		local name = string.gsub(assetInfo.Name, ' ', '_')
-		name = string.gsub(name, "'", '_')
-		name = string.gsub(name, '"', '_')
-		name = string.gsub(name, "`", '_')
-		name = string.gsub(name, ':', '_')
-		name = string.gsub(name, '/', '_')
-		name = string.gsub(name, '\\', '_')
+		local name = fixFileName(assetInfo.Name)
 		return "Head_" .. name
 	end
-	
+
 	return "None"
 end
 
@@ -299,18 +307,12 @@ local function applyBundle(humanoid, bundleId)
 		humanoid:ApplyDescription(bundleDesc)
 	end
 
-	local name = string.gsub(bundleInfo.Name, ' ', '_')
-	name = string.gsub(name, "'", '_')
-	name = string.gsub(name, '"', '_')
-	name = string.gsub(name, "`", '_')
-	name = string.gsub(name, ':', '_')
-	name = string.gsub(name, '/', '_')
-	name = string.gsub(name, '\\', '_')
+	local name = fixFileName(bundleInfo.Name)
 	return name
 end
 
 local function batchExport()
-	
+
 	local blankR15 = createDefaultR15Rig()
 	if not blankR15 then
 		warn("Can't create default R15 rig")
@@ -328,7 +330,7 @@ local function batchExport()
 	local response = g_Http:JSONDecode(response)
 	print("heads count :" .. tostring(#response.heads) )
 	print("bundles count :" .. tostring(#response.bundles) )
-	
+
 	for _, headId in ipairs(response.heads) do
 		print("Spawning head " .. tostring(headId))
 		local avatarModel = blankR15:Clone()
@@ -371,7 +373,7 @@ local function batchExport()
 
 		avatarModel:Destroy()
 	end
-	
+
 	blankR15:Destroy()
 
 end
@@ -384,6 +386,7 @@ avatarExportBtn.Click:connect(function()
 	if not avatarModel then
 		return
 	end
+	assert(avatarModel)
 	local json = createAvatarDescription(avatarModel)
 	if not json then
 		warn("Can not generate avatar descriptor")

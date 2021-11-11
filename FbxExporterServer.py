@@ -1057,7 +1057,7 @@ def export_roblox_model(model_desc) -> str:
 
     text = doc.finalize()
 
-    logger.message("Save FBX...")
+    logger.message("Save FBX '" + file_name + "'")
     ensure_path_exist(file_name)
     file_handle = open(file_name, 'w+')
     file_handle.write(text)
