@@ -32,8 +32,9 @@ local function fixFileName(name)
 	name = string.gsub(name, ':', '_')
 	name = string.gsub(name, '/', '_')
 	name = string.gsub(name, '\\', '_')
-	name = string.gsub(name, '.', '_')
+	name = string.gsub(name, '%.', '_')
 	name = string.gsub(name, '@', '_')
+	name = string.gsub(name, '-', '_')
 	name = string.gsub(name, ',', '_')
 	return name
 end
@@ -265,6 +266,25 @@ local function createDefaultR15Rig()
 	return nil
 end
 
+local function applyAccessory(avatarModel, assetId)
+	local success, model = pcall(g_InsertService.LoadAsset, g_InsertService, assetId)
+	if success and model then
+		local accessory = model:FindFirstChildWhichIsA("Accessory")
+		if accessory then
+			accessory.Parent = avatarModel
+		end
+		model:Destroy()
+
+		local assetInfo = game:GetService("MarketplaceService"):GetProductInfo(assetId)
+		print(assetInfo.Name)
+		local name = fixFileName(assetInfo.Name)
+		return "Acc_" .. name
+	end
+
+	return "None"
+
+end
+
 local function applyHead(avatarModel, assetId)
 	local success, model = pcall(g_InsertService.LoadAsset, g_InsertService, assetId)
 	if success and model then
@@ -282,7 +302,7 @@ local function applyHead(avatarModel, assetId)
 		model:Destroy()
 
 		local assetInfo = game:GetService("MarketplaceService"):GetProductInfo(assetId)
-		
+		print(assetInfo.Name)
 		local name = fixFileName(assetInfo.Name)
 		return "Head_" .. name
 	end
@@ -306,7 +326,8 @@ local function applyBundle(humanoid, bundleId)
 		local bundleDesc = g_Players:GetHumanoidDescriptionFromOutfitId(outfitId)
 		humanoid:ApplyDescription(bundleDesc)
 	end
-
+	
+	print(bundleInfo.Name)
 	local name = fixFileName(bundleInfo.Name)
 	return name
 end
@@ -328,8 +349,31 @@ local function batchExport()
 	end
 
 	local response = g_Http:JSONDecode(response)
+	print("accessories count :" .. tostring(#response.accessories) )
 	print("heads count :" .. tostring(#response.heads) )
 	print("bundles count :" .. tostring(#response.bundles) )
+	
+	for _, accId in ipairs(response.accessories) do
+		print("Spawning accessory " .. tostring(accId))
+		local avatarModel = blankR15:Clone()
+		avatarModel.Parent = workspace
+		local name = applyAccessory(avatarModel, accId)
+		avatarModel.Name = name
+		local json = createAvatarDescription(avatarModel)
+		if not json then
+			warn("Can not generate avatar descriptor")
+		else
+			print("Waiting response from 'Avatar FBX Exporter Server'")
+			local success, response = pcall(g_Http.PostAsync, g_Http, kServerUrl, json, Enum.HttpContentType.ApplicationJson, false)
+			if not success then
+				warn("Http request failed. Please run FbxExporterServer.py")
+			end
+			print(response)			
+		end
+
+		avatarModel:Destroy()
+	end
+
 
 	for _, headId in ipairs(response.heads) do
 		print("Spawning head " .. tostring(headId))

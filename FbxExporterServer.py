@@ -1096,6 +1096,24 @@ class ForgeHTTPArtServerRequestHandler(BaseHTTPRequestHandler):
 
         response = "{"
 
+        # add accessories
+        accessories_file = open('./accessories.txt', 'r')
+        if accessories_file:
+            response += '"accessories": ['
+            lines = accessories_file.readlines()
+            need_comma = False
+            for line in lines:
+                ln = line.rstrip()
+                if not ln.isdigit():
+                    continue
+                if need_comma:
+                    response += ", "
+                response += ln
+                need_comma = True
+            response += '], '
+        else:
+            logger.warn("Can't open accessories.txt")
+
         # add heads
         heads_file = open('./heads.txt', 'r')
         if heads_file:
