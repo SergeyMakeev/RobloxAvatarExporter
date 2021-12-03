@@ -278,7 +278,7 @@ def parse_mesh(content: bytes) -> Mesh or None:
         mesh_version = 2
 
     # binary mesh with LODs
-    if header == b'version 3.00':
+    if header == b'version 3.00' or header == b'version 3.01':
         mesh_version = 3
 
     # binary mesh with LODs and skinning data
