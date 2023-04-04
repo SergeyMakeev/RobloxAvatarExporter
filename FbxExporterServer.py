@@ -156,6 +156,7 @@ def fetch_asset(url: str) -> dict or None:
         url = asset_fetch_endpoint + url[32:]
 
     try:
+        url = url.replace(" ", "")
         request = urllib.request.Request(url)
         request.add_header('Roblox-Place-Id', '0')
         request.add_header('Accept-Encoding', 'gzip')
