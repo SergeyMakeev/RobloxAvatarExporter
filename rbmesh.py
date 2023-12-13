@@ -285,6 +285,17 @@ def parse_mesh(content: bytes) -> Mesh or None:
     if header == b'version 4.00' or header == b'version 4.01':
         mesh_version = 4
 
+    # FACS animation added
+    if header == b'version 5.00':
+        mesh_version = 5
+
+    # chunked format
+    if header == b'version 6.00':
+        mesh_version = 5
+
+    if header == b'version 7.00':
+        mesh_version = 5
+
     if mesh_version == 0:
         logger.fatal("Unsupported mesh header: " + str(header))
         return None
@@ -303,6 +314,8 @@ def parse_mesh(content: bytes) -> Mesh or None:
     num_joints = 0
     num_joint_name_chars = 0
     num_skinning_subsets = 0
+    control_to_joint_driver_version = 0
+    control_to_joint_driver_size = 0
 
     if mesh_version == 2:
         sizeof_mesh_vertex = struct.unpack('B', data_stream.read(1))[0]
@@ -345,7 +358,43 @@ def parse_mesh(content: bytes) -> Mesh or None:
         if sizeof_mesh_header != 24:
             logger.fatal("Unsupported mesh v4 header size: " + str(sizeof_mesh_header))
             return None
+    elif mesh_version == 5:
+        # 0 - None, 1 - Unknown, 2 - RBX Simplifier, 3 - MeshOpt
+        # noinspection PyUnusedLocal
+        lod_type = struct.unpack('H', data_stream.read(2))[0]
+        num_vertices = struct.unpack('I', data_stream.read(4))[0]
+        num_faces = struct.unpack('I', data_stream.read(4))[0]
+        num_lods = struct.unpack('H', data_stream.read(2))[0]
+        sizeof_mesh_lod = 4
+        num_joints = struct.unpack('H', data_stream.read(2))[0]
+        num_joint_name_chars = struct.unpack('I', data_stream.read(4))[0]
+        num_skinning_subsets = struct.unpack('H', data_stream.read(2))[0]
+        # noinspection PyUnusedLocal
+        num_quality_lods = struct.unpack('B', data_stream.read(1))[0]
+        # skip padding
+        data_stream.read(1)
 
+        control_to_joint_driver_version = struct.unpack('I', data_stream.read(4))[0]
+        control_to_joint_driver_size = struct.unpack('I', data_stream.read(4))[0]
+
+        sizeof_mesh_vertex = 40
+        sizeof_mesh_face = 12
+        if sizeof_mesh_header != 32:
+            logger.fatal("Unsupported mesh v5 header size: " + str(sizeof_mesh_header))
+            return None
+    elif mesh_version == 6 or  mesh_version == 7:
+        chunk_name = bytearray(8)
+        data_stream.readinto(chunk_name)
+        chunk_version = struct.unpack('I', data_stream.read(4))[0]
+        chunk_size = struct.unpack('I', data_stream.read(4))[0]
+        # chunk types
+        # COREMESH v1(normal) / v2 (compressed)
+        # LODS
+        # SKINNING
+        # FACS
+        # HSRAVIS
+        logger.fatal("Still WiP")
+        return None
     else:
         logger.fatal("Unsupported mesh header: " + str(header))
 
@@ -458,6 +507,11 @@ def parse_mesh(content: bytes) -> Mesh or None:
             subset_joint_to_mesh_joint.append(joint_mapping)
 
     mesh.assign_lod_data(lods)
+
+    # read FACS. data
+    if control_to_joint_driver_version != 0 and control_to_joint_driver_size != 0:
+        # read facs driver data
+        data_stream.read(control_to_joint_driver_size)
 
     return mesh
 
